@@ -43,10 +43,10 @@ from tqdm.contrib.concurrent import process_map
 from transformers.models.roberta.tokenization_roberta import RobertaTokenizer
 from transformers.models.t5.modeling_t5 import T5ForConditionalGeneration
 
-# TokenizerType = RobertaTokenizer
+#TokenizerType = RobertaTokenizer
 #This is to change the model to unixcoder
 TokenizerType = AutoTokenizer
-# ModelType = T5ForConditionalGeneration
+#ModelType = T5ForConditionalGeneration
 ModelType = AutoModel
 
 T1 = TypeVar("T1")
@@ -59,12 +59,14 @@ def proj_root() -> Path:
 
 def get_config_dict() -> dict:
     if (path := proj_root() / "config" / "typet5.json").exists():
+        print("I am inside this")
         return json.loads(read_file(path))
     else:
         return {}
 
 
 def get_config(key: str) -> Optional[str]:
+    print("key", key, get_config_dict().get(key)) 
     return get_config_dict().get(key)
 
 
@@ -84,10 +86,10 @@ def get_dataroot() -> Path:
 
 
 def get_dataset_dir(dataname: str) -> Path:
-    if (v := get_config("datasets_root")) is None:
-        return get_dataroot() / "datasets" / dataname
-    else:
-        return Path(v) / dataname
+    #if (v := get_config("datasets_root")) is None:
+    return get_dataroot() / "datasets" / dataname
+    #else:
+    #   return Path(v) / dataname
 
 
 def get_model_dir(trained=True) -> Path:

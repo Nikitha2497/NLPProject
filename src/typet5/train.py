@@ -224,6 +224,8 @@ class TrainModelWrapper(pl.LightningModule):
         self.save_hyperparameters()
         self.model: ModelType = load_model_spot(model_checkpoint)
         self.tokenizer: TokenizerType = TokenizerType.from_pretrained(model_checkpoint)
+        self.tokenizer.model_max_length = 1026
+        self.tokenizer.truncation = True
         self.model_saving_path = model_saving_path
         self.model_saving_interval: Optional[int] = None
         self.avg_loss = MovingAvg(alpha=0.01)
@@ -254,7 +256,7 @@ class TrainModelWrapper(pl.LightningModule):
         outputs = self.model.forward(
             input_ids=batch["input_ids"],
             attention_mask=batch["attention_mask"],
-            labels=batch["labels"],
+            #labels=batch["labels"],
         )
         assert isinstance(outputs, Seq2SeqLMOutput)
         loss = not_none(outputs.loss)
@@ -270,7 +272,7 @@ class TrainModelWrapper(pl.LightningModule):
         outputs = self.model(
             input_ids=batch["input_ids"],
             attention_mask=batch["attention_mask"],
-            labels=batch["labels"],
+            #labels=batch["labels"],
         )
         loss = outputs.loss
         self.log("valid/loss", loss.item())

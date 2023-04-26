@@ -756,6 +756,7 @@ def create_tokenized_srcsets(
     import typet5.function_dataset as fd
 
     repos_dir = get_dataset_dir(dataset) / "repos"
+    print(repos_dir, get_dataset_dir(dataset), "what is happening")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     tk_dataset: dict[str, TokenizedSrcSet] = {}
