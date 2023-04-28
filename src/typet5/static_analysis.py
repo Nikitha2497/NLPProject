@@ -552,7 +552,7 @@ class PythonProject:
             for f in rec_iter_files(
                 root, dir_filter=lambda d: d.name not in ignore_dirs
             )
-            if f.suffix == ".py" and file_filter(f)
+            if (f.suffix == ".py") and file_filter(f)
         ]
 
         for src in all_srcs:

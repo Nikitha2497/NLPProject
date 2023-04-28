@@ -14,6 +14,8 @@ from torch.optim import AdamW
 from transformers import DataCollatorForSeq2Seq
 from transformers.modeling_outputs import Seq2SeqLMOutput
 
+from typet5.unixcoder import UniXcoder
+
 from .data import ChunkedDataset, TokenizedSrcSet
 from .model import (
     CtxArgs,
@@ -110,9 +112,11 @@ def train_spot_model(
     print("Disk space left:")
     subprocess.run(["df", "-h", str(running_dir)])
 
-    # model_path = ModelWrapper.get_codet5_path(use_small_model)
+    model_path = ModelWrapper.get_codet5_path(use_small_model)
     model_path = ModelWrapper.get_unixcoder_path()
-    lit_model = TrainModelWrapper(model_path, model_saving_path=running_dir / "ckpts")
+    # lit_model = TrainModelWrapper(model_path, model_saving_path=running_dir / "ckpts")
+    unixcoder = UniXcoder(model_path)
+    lit_model = TrainModelWrapper(unixcoder,model_path, model_saving_path=running_dir / "ckpts")
     tokenizer: TokenizerType = lit_model.tokenizer
 
     common_type_names = tk_dataset["train"].common_type_names()
@@ -218,18 +222,23 @@ class TrainModelWrapper(pl.LightningModule):
     "A pytorch lightening module that handles training and evaluation of the SPOT model."
 
     def __init__(
-        self, model_checkpoint: str | Path, *, model_saving_path: Path
+        self, unixcoder: UniXcoder, model_checkpoint: str | Path, *, model_saving_path: Path
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
-        self.model: ModelType = load_model_spot(model_checkpoint)
-        self.tokenizer: TokenizerType = TokenizerType.from_pretrained(model_checkpoint)
-        self.tokenizer.model_max_length = 1026
-        self.tokenizer.truncation = True
+        # self.model: ModelType = load_model_spot(model_checkpoint)
+        self.unixcoder = unixcoder
+        self.model: ModelType = self.unixcoder.model
+        # self.tokenizer: TokenizerType = TokenizerType.from_pretrained(model_checkpoint)
+        self.tokenizer: TokenizerType = unixcoder.tokenizer
+        # self.tokenizer.model_max_length = 1026
+        # self.tokenizer.truncation = True
         self.model_saving_path = model_saving_path
         self.model_saving_interval: Optional[int] = None
         self.avg_loss = MovingAvg(alpha=0.01)
         self.labels_trained = 0
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.unixcoder.to(self.device)
 
     def on_fit_start(self):
         # maps chunk id to the initial predictions made for that chunk immediately
@@ -243,6 +252,7 @@ class TrainModelWrapper(pl.LightningModule):
         return _configure_optimizers(self.model)
 
     def training_step(self, batch, batch_idx):
+        
         if self.model_saving_interval is not None and self.current_epoch == 0:
             self.batch_ids.append(batch["chunk_id"].tolist())
             self.saving_counter += 1
@@ -252,10 +262,16 @@ class TrainModelWrapper(pl.LightningModule):
                 self.model.save_pretrained(
                     self.model_saving_path / f"n_batches={len(self.batch_ids)}"
                 )
+        
+        
+        # tokens_ids = self.unixcoder.tokenize(batch["input_ids"],max_length=512,mode="<encoder-only>")
+        # source_ids = torch.tensor(tokens_ids)
 
-        outputs = self.model.forward(
-            input_ids=batch["input_ids"],
-            attention_mask=batch["attention_mask"],
+        outputs = self.unixcoder.forward(
+            # source_ids,
+            batch["input_ids"]
+            #input_ids=batch["input_ids"],
+            #attention_mask=batch["attention_mask"],
             #labels=batch["labels"],
         )
         assert isinstance(outputs, Seq2SeqLMOutput)
@@ -269,14 +285,18 @@ class TrainModelWrapper(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        outputs = self.model(
-            input_ids=batch["input_ids"],
-            attention_mask=batch["attention_mask"],
-            #labels=batch["labels"],
+        # print(batch["input_ids"])
+        # tokens_ids = self.unixcoder.tokenize(batch["input_ids"],max_length=512,mode="<encoder-only>")
+        # source_ids = torch.tensor(tokens_ids)
+        outputs = self.unixcoder.decode(
+            batch["input_ids"]
+            # input_ids=batch["input_ids"],
+            # attention_mask=batch["attention_mask"],
+            # labels=batch["labels"],
         )
-        loss = outputs.loss
-        self.log("valid/loss", loss.item())
-        self.log("train/labels", float(self.labels_trained))
+        # loss = outputs.loss
+        # self.log("valid/loss", loss.item())
+        # self.log("train/labels", float(self.labels_trained))
 
 
 def concat_batches(batches: list[dict], keys: list[str]) -> dict:

@@ -43,11 +43,11 @@ from tqdm.contrib.concurrent import process_map
 from transformers.models.roberta.tokenization_roberta import RobertaTokenizer
 from transformers.models.t5.modeling_t5 import T5ForConditionalGeneration
 
-#TokenizerType = RobertaTokenizer
+TokenizerType = RobertaTokenizer
 #This is to change the model to unixcoder
-TokenizerType = AutoTokenizer
-#ModelType = T5ForConditionalGeneration
-ModelType = AutoModel
+# TokenizerType = AutoTokenizer
+ModelType = T5ForConditionalGeneration
+# ModelType = AutoModel
 
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")
@@ -125,7 +125,9 @@ def load_model_spot(path) -> ModelType:
 
 
 def load_tokenizer_spot() -> TokenizerType:
-    return TokenizerType.from_pretrained("Salesforce/codet5-base")
+    return TokenizerType.from_pretrained("microsoft/unixcoder-base-nine")
+    # return TokenizerType.from_pretrained("Salesforce/codet5-base")
+    # return RobertaTokenizer.from_pretrained("microsoft/unixcoder-base")
 
 
 def _turn_off_tokenizer_warning(tokenizer: TokenizerType):

@@ -49,15 +49,22 @@ def remove_newer_syntax(m: cst.Module, supported: SupportedSyntax) -> cst.Module
 
     class Rewriter(cst.CSTTransformer):
         def leave_Annotation(self, node, updated: "cst.Annotation"):
+            # print("I am in annotonation")
             if supported.union_types:
                 return updated
             ty = parse_type_expr(updated.annotation, silent=True)
-            if ty is None:
-                return cst.RemoveFromParent()
+            # print(ty, "this is ty")
+            try:
+                if ty is None:
+                    # print("I ma here")
+                    return cst.RemoveFromParent()
+            except:
+                print("there is a problem with removal of parent")
             ty = normalize_type(ty)  # this should get rid of the Union type syntax.
             return updated.with_changes(annotation=cst.parse_expression(str(ty)))
 
         def leave_Module(self, node, updated: "cst.Module"):
+            # print("I am in module")
             new_lines = [_DefaultImport] if not supported.basic_types else []
             default_import = updated.code_for_node(_DefaultImport)
             for stmt in updated.body:
@@ -66,6 +73,7 @@ def remove_newer_syntax(m: cst.Module, supported: SupportedSyntax) -> cst.Module
             return updated.with_changes(body=new_lines)
 
         def leave_Match(self, node, updated: cst.Match):
+            # print("I am in match")
             if supported.pattern_match:
                 return updated
             subject = updated.subject
@@ -94,10 +102,10 @@ def remove_newer_syntax(m: cst.Module, supported: SupportedSyntax) -> cst.Module
             return if_clauses
 
         def leave_NamedExpr(self, node, updated: "cst.NamedExpr"):
+            # print("I am in namedexpr")
             if supported.named_exprs:
                 return updated
             return updated.value
-
     return m.visit(Rewriter())
 
 

@@ -242,6 +242,7 @@ def src_to_chunks(
     chunks = list[dict]()
     chunks_info = list[SrcChunkInfo]()
     src_to_chunks_(chunks, chunks_info, src, label_range, ctx_args)
+    # print(chunks, "CHUNKS")
     return chunks, chunks_info
 
 
@@ -258,7 +259,11 @@ def src_to_chunks_(
     ), f"label_range: {label_range}, len(types): {len(src.types)}"
 
     tokenizer = DefaultTokenizer
-    special_tks = [tokenizer.additional_special_tokens_ids[99 - i] for i in range(100)]
+    # special_tks = [tokenizer.additional_special_tokens_ids[99 - i] for i in range(100)]
+    tokenizer.add_tokens(["<mask0>"],special_tokens=True)
+    print(len(tokenizer.additional_special_tokens_ids))
+    special_tks = []
+    # special_tks = [tokenizer.additional_special_tokens_ids[99 - i] for i in range(100)]
     bos_id, eos_id = not_none(tokenizer.bos_token_id), not_none(tokenizer.eos_token_id)
 
     if len(src.tokenized_preamble) > ctx_args.preamble_size:
@@ -285,8 +290,8 @@ def src_to_chunks_(
     inlined_spans = list[slice]() if src.inlined_spans is not None else None
     for i, l_id in enumerate(label_ids):
         label_pos = src.types_pos[l_id] - ctx_start
-        tks[label_pos] = special_tks[i]
-        label_tkns.append(special_tks[i])
+        # tks[label_pos] = special_tks[i]
+        # label_tkns.append(special_tks[i])
         label_tkns.extend(src.types_tks[l_id])
         types.append(src.types[l_id])
         types_info.append(src.types_info[l_id])
@@ -362,7 +367,7 @@ def chunk_srcs_per_file(
         data["n_labels"].append(chunk["n_labels"])
         data["chunk_id"].append(chunk_id)
         chunk_id += 1
-
+    
     files = [(repos_root / s.file).resolve() for s in srcs]
     return ChunkedDataset(
         data=Dataset.from_dict(data),

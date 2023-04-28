@@ -197,19 +197,29 @@ def parse_type_expr(annot: cst.BaseExpression, silent=True) -> PythonType | None
 
 
 def parse_type_from_ast(tree: ast.expr) -> PythonType:
+    # print("I am inside the func")
     assert isinstance(tree, ast.expr)
+    # print(tree, "this is the tree")
     match tree:
         case ast.Name() | ast.Attribute():
             return PythonType(parse_qualified_name(tree))
         case ast.Constant(value=str() as s):
-            ty = parse_type_from_ast(ast.parse(s, mode="eval").body)
+            # print("I am inside the first constant")
+            parsed = ast.parse(s, mode = "eval").body
+            # print("parsed body ", parsed)
+            ty = parse_type_from_ast(parsed)
+            # print(ty, "can  I print this")
             return ty
         case ast.Constant(value=v):
+            # print("I am inside the second constant")
             if v == None:
+                # print("first none")
                 return PythonType(("None",))
             elif v == (...):
+                # print("second none")
                 return PythonType(("...",))
             else:
+                # print("thirf none")
                 return PythonType((str(v),))
         case ast.List(elts=elts):  # this can happen inside Callable
             args = tuple(map(parse_type_from_ast, elts))
